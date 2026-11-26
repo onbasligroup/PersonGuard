@@ -1,0 +1,77 @@
+features_root: features
+dataset_dirs: [ptbxl, mimic_ecg, icentia11k, ecg_arrhythmia, cinc2021]
+out_dir: results/pg_cert_replication
+seed: 7777
+delta: 1.0e-5
+eps_grid: [0.25, 0.5, 1, 2, 4, 8]
+n_grid: [50, 100, 250, 500, 1000, 5000]
+caps: [1, 4, 16, 64]
+cohorts: 20
+draws: 10
+outer_R_quantile: 0.95
+public_split: {ref: 0.5}
+tuning:
+  columns: [site, sex, age_band, labels]
+  random_cohorts: 10
+  min_size: 30
+bases_fixed: [dct, pca, haar, bspline, full]
+k_grid: [1, 2, 3, 5, 7, 10, 14, 28]
+C_quantiles: [0.5, 0.7, 0.85, 0.95]
+random_seeds: [819, 820, 821, 822, 823]
+bands_hz: [[0.5, 5], [5, 15], [15, 40], [40, 60]]
+selection:
+  bases: [dct, pca, full]
+  k_grid: [1, 2, 3, 5, 7, 10, 14]
+  C_quantiles: [0.5, 0.85, 0.95]
+  eps_frac_sel: 0.1
+  gate:
+    enabled: true
+certificate:
+  eps_frac_cert: 0.1
+  alpha: 0.05
+  mode: beat_public
+scenarios:
+  - name: in_dist_ptbxl
+    pool: "dataset == 'ptbxl'"
+    split_fraction_public: 0.3
+  - name: institution_china_to_ptbxl
+    public: "dataset == 'ecg_arrhythmia'"
+    private: "dataset == 'ptbxl'"
+  - name: institution_georgia_cpsc_to_ptbxl
+    public: "dataset == 'cinc2021'"
+    private: "dataset == 'ptbxl'"
+  - name: institution_ptbxl_to_mimic
+    public: "dataset == 'ptbxl'"
+    private: "dataset == 'mimic_ecg'"
+  - name: device_clinical_to_wearable
+    public: "dataset == 'ptbxl'"
+    private: "dataset == 'icentia11k'"
+  - name: age_shift_ptbxl
+    public: "dataset == 'ptbxl' and age < 50"
+    private: "dataset == 'ptbxl' and age >= 65"
+  - name: prevalence_shift_ptbxl
+    public: "dataset == 'ptbxl' and labels == 'NORM'"
+    private: "dataset == 'ptbxl' and labels != 'NORM' and labels == labels"
+attacks:
+  pool: "dataset == 'mimic_ecg'"
+  cap: 1
+  window_cap: 2
+  confidence: 0.95
+  n_grid: [50, 250, 1000]
+  eps_grid: [0.5, 1, 4, 8]
+  trials: 40000
+  audit_trials: 200000
+  linkage:
+    pool: "dataset == 'mimic_ecg' and n_records_used >= 2"
+    gallery: [100, 1000, 10000]
+    holdout_fraction: 0.2
+window_audit:
+  pool: "dataset == 'icentia11k'"
+  reference_fraction: 0.5
+  k: 5
+  C_quantile: 0.85
+  windows: [1, 2, 4, 8, 16, 32, 64]
+  n_grid: [250]
+  eps_grid: [0.5, 1]
+  trials: 200000
+  confidence: 0.95
